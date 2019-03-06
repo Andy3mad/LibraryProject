@@ -1,31 +1,34 @@
-package view;
+package edu.mum.library.view;
 
-import application.Main;
-import javafx.beans.value.ObservableValue;
-/**
- * We must put it in the same package as the PersonOverview.fxml, otherwise the
- * SceneBuilder won't find it.
- *
- * @author rXing
- *
- */
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import edu.mum.library.dataaccess.MemberDao;
+import edu.mum.library.service.LibraryService;
+import edu.mum.library.view.dto.MemberDto;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
-import javafx.util.Callback;
-import model.Person;
 
-public class PersonOverviewController {
+@Component
+@Scope(BeanDefinition.SCOPE_PROTOTYPE)
+public class MemberOverviewController extends BaseFxController {
 	@FXML
-	private TableView<Person> personTable;
+	private TableView<MemberDto> personTable;
 	@FXML
-	private TableColumn<Person, String> firstNameColumn;
+	private TableColumn<MemberDto, String> firstNameColumn;
 	@FXML
-	private TableColumn<Person, String> lastNameColumn;
+	private TableColumn<MemberDto, String> lastNameColumn;
+
 	@FXML
 	private Label firstNameLabel;
 	@FXML
@@ -39,14 +42,20 @@ public class PersonOverviewController {
 	@FXML
 	private Label birthdayLabel;
 
-	// Reference to the main application.
-	private Main mainApp;
+	@Autowired
+	private FxViewManager javaFxHelper;
 
-	/**
-	 * The constructor. The constructor is called before the initialize()
-	 * method.
-	 */
-	public PersonOverviewController() {
+	@Autowired
+	private LibraryUiManager libraryUiManager;
+
+	@Autowired
+	private LibraryService libraryService;
+
+	@Autowired
+	private MemberDao memberDao;
+
+	List<MemberDto> getAllMemberList() {
+		return memberDao.getAll().stream().map(m -> new MemberDto(m)).collect(Collectors.toList());
 	}
 
 	/**
@@ -55,10 +64,7 @@ public class PersonOverviewController {
 	 */
 	@FXML
 	private void initialize() {
-		// Initialize the person table with the two columns.
-//		firstNameColumn.setCellValueFactory(cellData -> cellData.getValue().firstNameProperty());
-//		lastNameColumn.setCellValueFactory(cellData -> cellData.getValue().lastNameProperty());
-
+		personTable.setItems(FXCollections.observableArrayList(getAllMemberList()));
 		preJava8();
 		// Clear person details.
 		showPersonDetails(null);
@@ -71,42 +77,30 @@ public class PersonOverviewController {
 	}
 
 	private void preJava8() {
-		firstNameColumn.setCellValueFactory(new Callback<CellDataFeatures<Person, String>, ObservableValue<String>>() {
-
-			@Override
-			public ObservableValue<String> call(CellDataFeatures<Person, String> param) {
-				return param.getValue().firstNameProperty();
-			}
-		});
-
-		lastNameColumn.setCellValueFactory(new Callback<CellDataFeatures<Person, String>, ObservableValue<String>>() {
-
-			@Override
-			public ObservableValue<String> call(CellDataFeatures<Person, String> param) {
-				return param.getValue().lastNameProperty();
-			}
-		});
+//		firstNameColumn.setCellValueFactory(new Callback<CellDataFeatures<MemberDto, String>, ObservableValue<String>>() {
+//
+//			@Override
+//			public ObservableValue<String> call(CellDataFeatures<Person, String> param) {
+//				return param.getValue().firstNameProperty();
+//			}
+//		});
+//
+//		lastNameColumn.setCellValueFactory(new Callback<CellDataFeatures<Person, String>, ObservableValue<String>>() {
+//
+//			@Override
+//			public ObservableValue<String> call(CellDataFeatures<Person, String> param) {
+//				return param.getValue().lastNameProperty();
+//			}
+//		});
 	}
 
-	/**
-	 * Is called by the main application to give a reference back to itself.
-	 *
-	 * @param mainApp
-	 */
-	public void setMainApp(Main mainApp) {
-		this.mainApp = mainApp;
-
-		// Add observable list data to the table
-		personTable.setItems(mainApp.getPersonData());
-	}
-
-	private void showPersonDetails(Person person) {
+	private void showPersonDetails(MemberDto person) {
 		if (person != null) {
 			// Fill the labels with info from the person object.
 			firstNameLabel.setText(person.getFirstName());
 			lastNameLabel.setText(person.getLastName());
 			streetLabel.setText(person.getStreet());
-			postalCodeLabel.setText(Integer.toString(person.getPostalCode()));
+			postalCodeLabel.setText(person.getZipcode());
 			cityLabel.setText(person.getCity());
 
 			// TODO: We need a way to convert the birthday into a String!
@@ -133,7 +127,7 @@ public class PersonOverviewController {
 		} else {
 			// Nothing selected.
 			Alert alert = new Alert(AlertType.WARNING);
-			alert.initOwner(mainApp.getPrimaryStage());
+			alert.initOwner(application.getPrimaryStage());
 			alert.setTitle("No Selection");
 			alert.setHeaderText("No Person Selected");
 			alert.setContentText("Please select a person in the table.");
@@ -148,11 +142,10 @@ public class PersonOverviewController {
 	 */
 	@FXML
 	private void handleNewPerson() {
-		Person tempPerson = new Person();
-		boolean okClicked = mainApp.showPersonEditDialog(tempPerson);
-		if (okClicked) {
-			mainApp.getPersonData().add(tempPerson);
-		}
+//		Member tempPerson = null;// new Person();
+//		if (libraryUiManager.showPersonEditDialog(tempPerson)) {
+//			personTable.setItems(FXCollections.observableArrayList(personService.getAllPerson()));
+//		}
 	}
 
 	/**
@@ -161,17 +154,17 @@ public class PersonOverviewController {
 	 */
 	@FXML
 	private void handleEditPerson() {
-		Person selectedPerson = personTable.getSelectionModel().getSelectedItem();
+		MemberDto selectedPerson = personTable.getSelectionModel().getSelectedItem();
 		if (selectedPerson != null) {
-			boolean okClicked = mainApp.showPersonEditDialog(selectedPerson);
-			if (okClicked) {
-				showPersonDetails(selectedPerson);
-			}
+//			boolean okClicked = libraryUiManager.showPersonEditDialog(selectedPerson);
+//			if (okClicked) {
+//				showPersonDetails(selectedPerson);
+//			}
 
 		} else {
 			// Nothing selected.
 			Alert alert = new Alert(AlertType.WARNING);
-			alert.initOwner(mainApp.getPrimaryStage());
+			alert.initOwner(application.getPrimaryStage());
 			alert.setTitle("No Selection");
 			alert.setHeaderText("No Person Selected");
 			alert.setContentText("Please select a person in the table.");

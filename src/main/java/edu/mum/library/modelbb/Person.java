@@ -1,4 +1,4 @@
-package model;
+package edu.mum.library.modelbb;
 
 import java.time.LocalDate;
 
@@ -10,7 +10,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 /**
- * With JavaFX it's common to use Properties for all fields of a model class. A
+ * With JavaFX it's common to use Properties for all fields of a edu.mum.library.model class. A
  * Property allows us, for example, to automatically be notified when the
  * lastName or any other variable is changed. This helps us keep the view in
  * sync with the data.

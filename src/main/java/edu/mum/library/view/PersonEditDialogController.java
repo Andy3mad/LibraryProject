@@ -1,14 +1,35 @@
-package view;
+package edu.mum.library.view;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import edu.mum.library.modelbb.Person;
+import edu.mum.library.servicebb.DateUtil;
+import edu.mum.library.servicebb.PersonService;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TextField;
-import javafx.stage.Stage;
-import model.Person;
-import util.DateUtil;
 
-public class PersonEditDialogController {
+@Component
+@Scope(BeanDefinition.SCOPE_PROTOTYPE)
+public class PersonEditDialogController extends BaseFxModalController {
+
+	@Override
+	public void postInit() {
+		this.person = (Person) this.getCurrentStage().getUserData();
+		if (person != null) {
+			firstNameField.setText(person.getFirstName());
+			lastNameField.setText(person.getLastName());
+			streetField.setText(person.getStreet());
+			postalCodeField.setText(Integer.toString(person.getPostalCode()));
+			cityField.setText(person.getCity());
+			birthdayField.setText(DateUtil.format(person.getBirthday()));
+			birthdayField.setPromptText("dd.mm.yyyy");
+		}
+	}
 
 	@FXML
 	private TextField firstNameField;
@@ -23,42 +44,18 @@ public class PersonEditDialogController {
 	@FXML
 	private TextField birthdayField;
 
-	private Stage dialogStage;
 	private Person person;
+	@Autowired
+	private PersonService personService;
 	private boolean okClicked = false;
 
 	/**
-	 * Initializes the controller class. This method is automatically called
-	 * after the fxml file has been loaded.
+	 * Initializes the controller class. This method is automatically called after
+	 * the fxml file has been loaded.
 	 */
 	@FXML
 	private void initialize() {
-	}
 
-	/**
-	 * Sets the stage of this dialog.
-	 *
-	 * @param dialogStage
-	 */
-	public void setDialogStage(Stage dialogStage) {
-		this.dialogStage = dialogStage;
-	}
-
-	/**
-	 * Sets the person to be edited in the dialog.
-	 *
-	 * @param person
-	 */
-	public void setPerson(Person person) {
-		this.person = person;
-
-		firstNameField.setText(person.getFirstName());
-		lastNameField.setText(person.getLastName());
-		streetField.setText(person.getStreet());
-		postalCodeField.setText(Integer.toString(person.getPostalCode()));
-		cityField.setText(person.getCity());
-		birthdayField.setText(DateUtil.format(person.getBirthday()));
-		birthdayField.setPromptText("dd.mm.yyyy");
 	}
 
 	/**
@@ -76,15 +73,23 @@ public class PersonEditDialogController {
 	@FXML
 	private void handleOk() {
 		if (isInputValid()) {
-			person.setFirstName(firstNameField.getText());
-			person.setLastName(lastNameField.getText());
-			person.setStreet(streetField.getText());
-			person.setPostalCode(Integer.parseInt(postalCodeField.getText()));
-			person.setCity(cityField.getText());
-			person.setBirthday(DateUtil.parse(birthdayField.getText()));
-
+			if (person != null) {
+				person.setFirstName(firstNameField.getText());
+				person.setLastName(lastNameField.getText());
+				person.setStreet(streetField.getText());
+				person.setPostalCode(Integer.parseInt(postalCodeField.getText()));
+				person.setCity(cityField.getText());
+				person.setBirthday(DateUtil.parse(birthdayField.getText()));
+			} else {
+				Person person = new Person(firstNameField.getText(), lastNameField.getText());
+				person.setStreet(streetField.getText());
+				person.setPostalCode(Integer.parseInt(postalCodeField.getText()));
+				person.setCity(cityField.getText());
+				person.setBirthday(DateUtil.parse(birthdayField.getText()));
+				personService.addPerson(person);
+			}
 			okClicked = true;
-			dialogStage.close();
+			this.getCurrentStage().close();
 		}
 	}
 
@@ -93,7 +98,7 @@ public class PersonEditDialogController {
 	 */
 	@FXML
 	private void handleCancel() {
-		dialogStage.close();
+		this.getCurrentStage().close();
 	}
 
 	/**
@@ -142,7 +147,7 @@ public class PersonEditDialogController {
 		} else {
 			// Show the error message.
 			Alert alert = new Alert(AlertType.ERROR);
-			alert.initOwner(dialogStage);
+			alert.initOwner(this.getCurrentStage());
 			alert.setTitle("Invalid Fields");
 			alert.setHeaderText("Please correct invalid fields");
 			alert.setContentText(errorMessage);
